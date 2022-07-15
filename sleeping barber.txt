@@ -1,0 +1,87 @@
+1.#include <stdio.h>
+2.#include <unistd.h>
+3.#include <stdlib.h>
+4.#include <time.h>
+5.#include <pthread.h>
+6.#include <semaphore.h>
+7.#define MAX_CUSTOMERS 25
+8.void *customer(void *num);
+9.void *barber(void *);
+10.void randwait(int secs);
+11.sem_t waitingRoom;
+12.sem_t barberChair;
+13.sem_t barberPillow;
+14.sem_t seatBelt;
+15.int allDone = 0;
+16.int main(int argc, char *argv[]) {
+17.pthread_t btid;
+18.pthread_t tid[MAX_CUSTOMERS];
+19.long RandSeed;
+20.int i, numCustomers, numChairs;
+21.int Number[MAX_CUSTOMERS];
+22.printf("Enter the number of Custmors : ");
+23.scanf("%d",&numCustomers) ;
+24.scanf("%d",&numCustomers) ;
+25.printf("Enter the number of Charis : ");
+26.scanf("%d",&numChairs);
+27.if (numCustomers>MAX_CUSTOMERS) {
+28.printf("The maximum number of Customers is %d.\n", MAX_CUSTOMERS);
+29.exit(-1);
+30.}
+31.for (i=0; i<MAX_CUSTOMERS; i++) {
+32.Number[i] = i;
+33.}
+34.sem_init(&waitingRoom, 0, numChairs);
+35.sem_init(&barberChair, 0, 1);
+36.sem_init(&barberPillow, 0, 0);
+37.sem_init(&seatBelt, 0, 0);
+38.pthread_create(&btid, NULL, barber, NULL);
+39.for (i=0; i<numCustomers; i++) {
+40.pthread_create(&tid[i], NULL, customer, (void *)&Number[i]);
+41.sleep(1);
+42.}
+43.for (i=0; i<numCustomers; i++) {
+44.pthread_join(tid[i],NULL);
+45.sleep(1);
+46.}
+47.allDone = 1;
+48.sem_post(&barberPillow);
+49.allDone = 1;
+50.sem_post(&barberPillow);
+51.pthread_join(btid,NULL);
+52.}
+53.void *customer(void *number) {
+54.int num = *(int *)number;
+55.printf("Customer %d leaving for barber shop.\n", num);
+56.randwait(2);
+57.printf("Customer %d arrived at barber shop.\n", num);
+58.sem_wait(&waitingRoom);
+59.printf("Customer %d entering waiting room.\n", num);
+60.sem_wait(&barberChair);
+61.sem_post(&waitingRoom);
+62.printf("Customer %d waking the barber.\n", num);
+63.sem_post(&barberPillow);
+64.sem_wait(&seatBelt);
+65.sem_post(&barberChair);
+66.printf("Customer %d leaving barber shop.\n", num);
+67.}
+68.void *barber(void *junk) {
+69.while (!allDone) {
+70.printf("The barber is sleeping\n");
+71.sem_wait(&barberPillow);
+72.if (!allDone) {
+73.printf("The barber is cutting hair\n");
+74.randwait(2);
+75.printf("The barber has finished cutting hair.\n");
+76.sem_post(&seatBelt);
+77.}
+78.else {
+79.printf("The barber is going home for the day.\n");
+80.}
+81.}
+82.}
+83.void randwait(int secs) {
+84.int len;
+85.len = (int) ((1 * secs) + 1);
+86.sleep(len);
+87.}
